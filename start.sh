@@ -169,7 +169,7 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
         elif [ -d "$target_path" ]; then
             # It's a directory with potentially important data, migrate it
             echo "Migrating existing $dir directory to /workspace/$dir..."
-            if [ "$(ls -A $target_path)" ]; then
+            if [ "$(ls -A "$target_path")" ]; then
                 # Directory is not empty, copy contents
                 cp -r "$target_path"/* "/workspace/$dir/" 2>/dev/null || true
             fi
