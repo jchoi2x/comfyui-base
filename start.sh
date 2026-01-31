@@ -310,6 +310,23 @@ else
     done
 fi
 
+# Create a script to sync models back to network volume
+cat > /usr/local/bin/sync-models-to-network.sh << 'EOF'
+#!/bin/bash
+# Sync models from container to network volume to persist downloads
+rsync -av --ignore-existing /ComfyUI/models/ /workspace/runpod-slim/models/ 2>/dev/null || true
+EOF
+chmod +x /usr/local/bin/sync-models-to-network.sh
+
+# Set up cron job to sync models every 5 minutes
+echo "Setting up cronjob to sync models to network volume..."
+(crontab -l 2>/dev/null || true; echo "*/5 * * * * /usr/local/bin/sync-models-to-network.sh") | crontab -
+
+# Start cron service
+service cron start 2>/dev/null || cron || true
+
+echo "Model sync cronjob configured to run every 5 minutes"
+
 # Start ComfyUI with custom arguments if provided
 cd $COMFYUI_DIR
 FIXED_ARGS="--listen 0.0.0.0 --port 8188"
