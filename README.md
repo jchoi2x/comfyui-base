@@ -14,6 +14,7 @@ Run the latest ComfyUI. First start installs dependencies (takes a few minutes),
 - ComfyUI-Manager
 - ComfyUI-KJNodes
 - Civicomfy
+- ComfyUI-Workflow-Models-Downloader
 
 ## Source Code
 

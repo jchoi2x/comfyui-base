@@ -14,6 +14,7 @@ Run the latest ComfyUI optimized for NVIDIA Blackwell architecture (RTX 5090, B2
 - ComfyUI-Manager
 - ComfyUI-KJNodes
 - Civicomfy
+- ComfyUI-Workflow-Models-Downloader
 
 ## Source Code
 

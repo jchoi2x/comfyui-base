@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e  # Exit the script if any statement returns a non-true return value
 
-COMFYUI_DIR="/workspace/runpod-slim/ComfyUI"
+COMFYUI_DIR="/ComfyUI"
 VENV_DIR="$COMFYUI_DIR/.venv-cu128"
 FILEBROWSER_CONFIG="/root/.config/filebrowser/config.json"
 DB_FILE="/workspace/runpod-slim/filebrowser.db"
@@ -146,9 +146,69 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
     
     # Clone ComfyUI if not present
     if [ ! -d "$COMFYUI_DIR" ]; then
-        cd /workspace/runpod-slim
+        cd /
         git clone https://github.com/comfyanonymous/ComfyUI.git
     fi
+    
+    # Create symbolic links for models and user configuration folders
+    echo "Setting up directories and symbolic links..."
+    
+    # Create workspace directories
+    mkdir -p /workspace/runpod-slim/models
+    mkdir -p /workspace/runpod-slim/user
+    mkdir -p /workspace/runpod-slim/input
+    mkdir -p /workspace/runpod-slim/output
+    
+    # Handle models directory - copy from network volume to container
+    if [ -d "/workspace/runpod-slim/models" ] && [ "$(ls -A /workspace/runpod-slim/models 2>/dev/null)" ]; then
+        echo "Copying models from /workspace/runpod-slim/models to /ComfyUI/models..."
+        mkdir -p "$COMFYUI_DIR/models"
+        rsync -av --ignore-existing /workspace/runpod-slim/models/ "$COMFYUI_DIR/models/" 2>/dev/null || \
+        cp -rn /workspace/runpod-slim/models/* "$COMFYUI_DIR/models/" 2>/dev/null || true
+    else
+        mkdir -p "$COMFYUI_DIR/models"
+    fi
+    
+    # Handle user directory - symlink from ComfyUI to network volume
+    if [ ! -d "/workspace/runpod-slim/user" ] || [ -z "$(ls -A /workspace/runpod-slim/user 2>/dev/null)" ]; then
+        # If network volume user directory is empty or doesn't exist, copy from ComfyUI
+        if [ -d "$COMFYUI_DIR/user" ] && [ "$(ls -A "$COMFYUI_DIR/user" 2>/dev/null)" ]; then
+            echo "Copying user config from /ComfyUI/user to /workspace/runpod-slim/user..."
+            cp -r "$COMFYUI_DIR/user"/* "/workspace/runpod-slim/user/" 2>/dev/null || true
+        fi
+    fi
+    
+    # Remove existing user directory/symlink in ComfyUI and create symlink
+    if [ -L "$COMFYUI_DIR/user" ]; then
+        rm "$COMFYUI_DIR/user"
+    elif [ -d "$COMFYUI_DIR/user" ]; then
+        rm -rf "$COMFYUI_DIR/user"
+    fi
+    ln -sf "/workspace/runpod-slim/user" "$COMFYUI_DIR/user"
+    
+    # Handle input and output - create symlinks
+    for dir in input output; do
+        target_path="$COMFYUI_DIR/$dir"
+        
+        if [ -L "$target_path" ]; then
+            rm "$target_path"
+        elif [ -d "$target_path" ]; then
+            # Migrate any existing data first
+            if [ "$(ls -A "$target_path" 2>/dev/null)" ]; then
+                echo "Migrating existing $dir directory to /workspace/runpod-slim/$dir..."
+                cp -r "$target_path"/* "/workspace/runpod-slim/$dir/" 2>/dev/null || true
+            fi
+            rm -rf "$target_path"
+        fi
+        
+        ln -sf "/workspace/runpod-slim/$dir" "$target_path"
+    done
+    
+    echo "Directory setup complete:"
+    echo "  $COMFYUI_DIR/models - copied from /workspace/runpod-slim/models"
+    echo "  $COMFYUI_DIR/user -> /workspace/runpod-slim/user (symlink)"
+    echo "  $COMFYUI_DIR/input -> /workspace/runpod-slim/input (symlink)"
+    echo "  $COMFYUI_DIR/output -> /workspace/runpod-slim/output (symlink)"
     
     # Install ComfyUI-Manager if not present
     if [ ! -d "$COMFYUI_DIR/custom_nodes/ComfyUI-Manager" ]; then
@@ -163,6 +223,7 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
         "https://github.com/kijai/ComfyUI-KJNodes"
         "https://github.com/MoonGoblinDev/Civicomfy"
         "https://github.com/MadiatorLabs/ComfyUI-RunpodDirect"
+        "https://github.com/slahiri/ComfyUI-Workflow-Models-Downloader"
     )
 
     for repo in "${CUSTOM_NODES[@]}"; do
@@ -248,6 +309,23 @@ else
         fi
     done
 fi
+
+# Create a script to sync models back to network volume
+cat > /usr/local/bin/sync-models-to-network.sh << 'EOF'
+#!/bin/bash
+# Sync models from container to network volume to persist downloads
+rsync -av --ignore-existing /ComfyUI/models/ /workspace/runpod-slim/models/ 2>/dev/null || true
+EOF
+chmod +x /usr/local/bin/sync-models-to-network.sh
+
+# Set up cron job to sync models every 5 minutes
+echo "Setting up cronjob to sync models to network volume..."
+(crontab -l 2>/dev/null || true; echo "*/5 * * * * /usr/local/bin/sync-models-to-network.sh") | crontab -
+
+# Start cron service
+service cron start 2>/dev/null || cron || true
+
+echo "Model sync cronjob configured to run every 5 minutes"
 
 # Start ComfyUI with custom arguments if provided
 cd $COMFYUI_DIR
