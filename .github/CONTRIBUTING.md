@@ -56,7 +56,7 @@ Troubleshooting:
 
 - Do not override `tags` in the workflow; they are defined in `docker-bake.hcl`.
 - Use the “Dev Build” workflow to test changes without tagging.
-- Check container logs under `/workspace/*.log` if runtime issues occur.
+- Check container logs under `/workspace/runpod-slim/*.log` if runtime issues occur.
 
 ## Opening PRs
 

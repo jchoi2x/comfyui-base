@@ -4,7 +4,7 @@ set -e  # Exit the script if any statement returns a non-true return value
 COMFYUI_DIR="/ComfyUI"
 VENV_DIR="$COMFYUI_DIR/.venv"
 FILEBROWSER_CONFIG="/root/.config/filebrowser/config.json"
-DB_FILE="/workspace/filebrowser.db"
+DB_FILE="/workspace/runpod-slim/filebrowser.db"
 
 # ---------------------------------------------------------------------------- #
 #                          Function Definitions                                  #
@@ -134,7 +134,7 @@ nohup filebrowser &> /filebrowser.log &
 start_jupyter
 
 # Create default comfyui_args.txt if it doesn't exist
-ARGS_FILE="/workspace/comfyui_args.txt"
+ARGS_FILE="/workspace/runpod-slim/comfyui_args.txt"
 if [ ! -f "$ARGS_FILE" ]; then
     echo "# Add your custom ComfyUI arguments here (one per line)" > "$ARGS_FILE"
     echo "Created empty ComfyUI arguments file at $ARGS_FILE"
@@ -153,38 +153,11 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
     # Create symbolic links for models and user configuration folders
     echo "Setting up symbolic links for models and user configuration..."
     
-    # Migrate from old directory structure if it exists
-    if [ -d "/workspace/runpod-slim" ]; then
-        echo "Detected old directory structure at /workspace/runpod-slim, migrating..."
-        for dir in models user input output; do
-            old_path="/workspace/runpod-slim/$dir"
-            new_path="/workspace/$dir"
-            
-            if [ -d "$old_path" ] && [ "$(ls -A "$old_path" 2>/dev/null)" ]; then
-                echo "Migrating $old_path to $new_path..."
-                mkdir -p "$new_path"
-                cp -r "$old_path"/* "$new_path/" 2>/dev/null || true
-            fi
-        done
-        
-        # Migrate other files
-        for file in comfyui_args.txt filebrowser.db comfyui.log; do
-            old_file="/workspace/runpod-slim/$file"
-            new_file="/workspace/$file"
-            if [ -f "$old_file" ] && [ ! -f "$new_file" ]; then
-                echo "Migrating $old_file to $new_file..."
-                cp "$old_file" "$new_file" 2>/dev/null || true
-            fi
-        done
-        
-        echo "Migration from old structure complete"
-    fi
-    
     # Create workspace directories for models and user configs
-    mkdir -p /workspace/models
-    mkdir -p /workspace/user
-    mkdir -p /workspace/input
-    mkdir -p /workspace/output
+    mkdir -p /workspace/runpod-slim/models
+    mkdir -p /workspace/runpod-slim/user
+    mkdir -p /workspace/runpod-slim/input
+    mkdir -p /workspace/runpod-slim/output
     
     # Setup symbolic links, safely handling existing directories
     for dir in models user input output; do
@@ -195,23 +168,23 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
             rm "$target_path"
         elif [ -d "$target_path" ]; then
             # It's a directory with potentially important data, migrate it
-            echo "Migrating existing $dir directory to /workspace/$dir..."
+            echo "Migrating existing $dir directory to /workspace/runpod-slim/$dir..."
             if [ "$(ls -A "$target_path")" ]; then
                 # Directory is not empty, copy contents
-                cp -r "$target_path"/* "/workspace/$dir/" 2>/dev/null || true
+                cp -r "$target_path"/* "/workspace/runpod-slim/$dir/" 2>/dev/null || true
             fi
             rm -rf "$target_path"
         fi
         
         # Create the symbolic link
-        ln -sf "/workspace/$dir" "$target_path"
+        ln -sf "/workspace/runpod-slim/$dir" "$target_path"
     done
     
     echo "Symbolic links created:"
-    echo "  $COMFYUI_DIR/models -> /workspace/models"
-    echo "  $COMFYUI_DIR/user -> /workspace/user"
-    echo "  $COMFYUI_DIR/input -> /workspace/input"
-    echo "  $COMFYUI_DIR/output -> /workspace/output"
+    echo "  $COMFYUI_DIR/models -> /workspace/runpod-slim/models"
+    echo "  $COMFYUI_DIR/user -> /workspace/runpod-slim/user"
+    echo "  $COMFYUI_DIR/input -> /workspace/runpod-slim/input"
+    echo "  $COMFYUI_DIR/output -> /workspace/runpod-slim/output"
     
     # Install ComfyUI-Manager if not present
     if [ ! -d "$COMFYUI_DIR/custom_nodes/ComfyUI-Manager" ]; then
@@ -321,16 +294,16 @@ if [ -s "$ARGS_FILE" ]; then
     CUSTOM_ARGS=$(grep -v '^#' "$ARGS_FILE" | tr '\n' ' ')
     if [ ! -z "$CUSTOM_ARGS" ]; then
         echo "Starting ComfyUI with additional arguments: $CUSTOM_ARGS"
-        nohup python main.py $FIXED_ARGS $CUSTOM_ARGS &> /workspace/comfyui.log &
+        nohup python main.py $FIXED_ARGS $CUSTOM_ARGS &> /workspace/runpod-slim/comfyui.log &
     else
         echo "Starting ComfyUI with default arguments"
-        nohup python main.py $FIXED_ARGS &> /workspace/comfyui.log &
+        nohup python main.py $FIXED_ARGS &> /workspace/runpod-slim/comfyui.log &
     fi
 else
     # File is empty, use only fixed args
     echo "Starting ComfyUI with default arguments"
-    nohup python main.py $FIXED_ARGS &> /workspace/comfyui.log &
+    nohup python main.py $FIXED_ARGS &> /workspace/runpod-slim/comfyui.log &
 fi
 
 # Tail the log file
-tail -f /workspace/comfyui.log
+tail -f /workspace/runpod-slim/comfyui.log

@@ -22,7 +22,7 @@ This is an open source template. Source code available at: [github.com/runpod-wo
 
 ## Custom Arguments
 
-Edit `/workspace/comfyui_args.txt` (one arg per line):
+Edit `/workspace/runpod-slim/comfyui_args.txt` (one arg per line):
 
 ```
 --max-batch-size 8
@@ -32,20 +32,20 @@ Edit `/workspace/comfyui_args.txt` (one arg per line):
 ## Directory Structure
 
 - `/ComfyUI`: ComfyUI installation directory
-- `/workspace/models`: Models directory (symlinked to `/ComfyUI/models`)
-- `/workspace/user`: User configuration directory (symlinked to `/ComfyUI/user`)
-- `/workspace/input`: Input directory (symlinked to `/ComfyUI/input`)
-- `/workspace/output`: Output directory (symlinked to `/ComfyUI/output`)
-- `/workspace/comfyui_args.txt`: ComfyUI arguments file
-- `/workspace/filebrowser.db`: FileBrowser database
+- `/workspace/runpod-slim/models`: Models directory (symlinked from `/ComfyUI/models`)
+- `/workspace/runpod-slim/user`: User configuration directory (symlinked from `/ComfyUI/user`)
+- `/workspace/runpod-slim/input`: Input directory (symlinked from `/ComfyUI/input`)
+- `/workspace/runpod-slim/output`: Output directory (symlinked from `/ComfyUI/output`)
+- `/workspace/runpod-slim/comfyui_args.txt`: ComfyUI arguments file
+- `/workspace/runpod-slim/filebrowser.db`: FileBrowser database
 
 ### Symbolic Links
 
 The container automatically creates symbolic links to allow easy access to ComfyUI's models and configuration:
 
-- Place your models in `/workspace/models/` and they will be available in ComfyUI
-- Place your user configurations in `/workspace/user/` and they will be available in ComfyUI
-- Input files go in `/workspace/input/`
-- Output files are saved to `/workspace/output/`
+- Place your models in `/workspace/runpod-slim/models/` and they will be available in ComfyUI
+- Place your user configurations in `/workspace/runpod-slim/user/` and they will be available in ComfyUI
+- Input files go in `/workspace/runpod-slim/input/`
+- Output files are saved to `/workspace/runpod-slim/output/`
 
-This design allows you to mount `/workspace` as a volume to persist your data across container restarts.
+This design allows you to mount `/workspace/runpod-slim` as a volume to persist your data across container restarts.
