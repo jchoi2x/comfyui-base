@@ -153,6 +153,33 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
     # Create symbolic links for models and user configuration folders
     echo "Setting up symbolic links for models and user configuration..."
     
+    # Migrate from old directory structure if it exists
+    if [ -d "/workspace/runpod-slim" ]; then
+        echo "Detected old directory structure at /workspace/runpod-slim, migrating..."
+        for dir in models user input output; do
+            old_path="/workspace/runpod-slim/$dir"
+            new_path="/workspace/$dir"
+            
+            if [ -d "$old_path" ] && [ "$(ls -A "$old_path" 2>/dev/null)" ]; then
+                echo "Migrating $old_path to $new_path..."
+                mkdir -p "$new_path"
+                cp -r "$old_path"/* "$new_path/" 2>/dev/null || true
+            fi
+        done
+        
+        # Migrate other files
+        for file in comfyui_args.txt filebrowser.db comfyui.log; do
+            old_file="/workspace/runpod-slim/$file"
+            new_file="/workspace/$file"
+            if [ -f "$old_file" ] && [ ! -f "$new_file" ]; then
+                echo "Migrating $old_file to $new_file..."
+                cp "$old_file" "$new_file" 2>/dev/null || true
+            fi
+        done
+        
+        echo "Migration from old structure complete"
+    fi
+    
     # Create workspace directories for models and user configs
     mkdir -p /workspace/models
     mkdir -p /workspace/user
