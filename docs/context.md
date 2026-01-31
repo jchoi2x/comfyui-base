@@ -125,6 +125,7 @@ Preinstalled custom nodes (initial set):
 - `ComfyUI-Manager` (ltdrdata)
 - `ComfyUI-KJNodes` (kijai)
 - `Civicomfy` (MoonGoblinDev)
+- `ComfyUI-Workflow-Models-Downloader` (slahiri)
 
 ## Customization Points
 
