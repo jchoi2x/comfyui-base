@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e  # Exit the script if any statement returns a non-true return value
 
-COMFYUI_DIR="/workspace/runpod-slim/ComfyUI"
+COMFYUI_DIR="/ComfyUI"
 VENV_DIR="$COMFYUI_DIR/.venv"
 FILEBROWSER_CONFIG="/root/.config/filebrowser/config.json"
-DB_FILE="/workspace/runpod-slim/filebrowser.db"
+DB_FILE="/workspace/filebrowser.db"
 
 # ---------------------------------------------------------------------------- #
 #                          Function Definitions                                  #
@@ -134,7 +134,7 @@ nohup filebrowser &> /filebrowser.log &
 start_jupyter
 
 # Create default comfyui_args.txt if it doesn't exist
-ARGS_FILE="/workspace/runpod-slim/comfyui_args.txt"
+ARGS_FILE="/workspace/comfyui_args.txt"
 if [ ! -f "$ARGS_FILE" ]; then
     echo "# Add your custom ComfyUI arguments here (one per line)" > "$ARGS_FILE"
     echo "Created empty ComfyUI arguments file at $ARGS_FILE"
@@ -146,9 +146,36 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
     
     # Clone ComfyUI if not present
     if [ ! -d "$COMFYUI_DIR" ]; then
-        cd /workspace/runpod-slim
+        cd /
         git clone https://github.com/comfyanonymous/ComfyUI.git
     fi
+    
+    # Create symbolic links for models and user configuration folders
+    echo "Setting up symbolic links for models and user configuration..."
+    
+    # Create workspace directories for models and user configs
+    mkdir -p /workspace/models
+    mkdir -p /workspace/user
+    mkdir -p /workspace/input
+    mkdir -p /workspace/output
+    
+    # Remove existing directories/links in ComfyUI if they exist
+    rm -rf "$COMFYUI_DIR/models"
+    rm -rf "$COMFYUI_DIR/user"
+    rm -rf "$COMFYUI_DIR/input"
+    rm -rf "$COMFYUI_DIR/output"
+    
+    # Create symbolic links from ComfyUI to workspace directories
+    ln -sf /workspace/models "$COMFYUI_DIR/models"
+    ln -sf /workspace/user "$COMFYUI_DIR/user"
+    ln -sf /workspace/input "$COMFYUI_DIR/input"
+    ln -sf /workspace/output "$COMFYUI_DIR/output"
+    
+    echo "Symbolic links created:"
+    echo "  $COMFYUI_DIR/models -> /workspace/models"
+    echo "  $COMFYUI_DIR/user -> /workspace/user"
+    echo "  $COMFYUI_DIR/input -> /workspace/input"
+    echo "  $COMFYUI_DIR/output -> /workspace/output"
     
     # Install ComfyUI-Manager if not present
     if [ ! -d "$COMFYUI_DIR/custom_nodes/ComfyUI-Manager" ]; then
@@ -257,16 +284,16 @@ if [ -s "$ARGS_FILE" ]; then
     CUSTOM_ARGS=$(grep -v '^#' "$ARGS_FILE" | tr '\n' ' ')
     if [ ! -z "$CUSTOM_ARGS" ]; then
         echo "Starting ComfyUI with additional arguments: $CUSTOM_ARGS"
-        nohup python main.py $FIXED_ARGS $CUSTOM_ARGS &> /workspace/runpod-slim/comfyui.log &
+        nohup python main.py $FIXED_ARGS $CUSTOM_ARGS &> /workspace/comfyui.log &
     else
         echo "Starting ComfyUI with default arguments"
-        nohup python main.py $FIXED_ARGS &> /workspace/runpod-slim/comfyui.log &
+        nohup python main.py $FIXED_ARGS &> /workspace/comfyui.log &
     fi
 else
     # File is empty, use only fixed args
     echo "Starting ComfyUI with default arguments"
-    nohup python main.py $FIXED_ARGS &> /workspace/runpod-slim/comfyui.log &
+    nohup python main.py $FIXED_ARGS &> /workspace/comfyui.log &
 fi
 
 # Tail the log file
-tail -f /workspace/runpod-slim/comfyui.log
+tail -f /workspace/comfyui.log

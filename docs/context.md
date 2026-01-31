@@ -25,9 +25,13 @@ This document outlines how to work in this repository from a developer point of 
 
 At runtime, the container uses:
 
-- `/workspace/runpod-slim/ComfyUI` – ComfyUI checkout and virtual environment
-- `/workspace/runpod-slim/comfyui_args.txt` – Optional line-delimited ComfyUI args
-- `/workspace/runpod-slim/filebrowser.db` – FileBrowser DB
+- `/ComfyUI` – ComfyUI installation directory
+- `/workspace/models` – Models directory (symlinked to `/ComfyUI/models`)
+- `/workspace/user` – User configuration directory (symlinked to `/ComfyUI/user`)
+- `/workspace/input` – Input directory (symlinked to `/ComfyUI/input`)
+- `/workspace/output` – Output directory (symlinked to `/ComfyUI/output`)
+- `/workspace/comfyui_args.txt` – Optional line-delimited ComfyUI args
+- `/workspace/filebrowser.db` – FileBrowser DB
 
 ## Build Targets
 
@@ -72,7 +76,14 @@ Startup is handled by `start.sh` (or `start.5090.sh` for the 5090 image):
 - Initializes and starts FileBrowser on port 8080 (root `/workspace`). Default admin user is created on first run.
 - Starts JupyterLab on port 8888, root at `/workspace`. Token set via `JUPYTER_PASSWORD` if provided.
 - Ensures `comfyui_args.txt` exists.
-- Clones ComfyUI and preselected custom nodes on first run, then creates a Python 3.12 venv and installs dependencies using `uv`.
+- Clones ComfyUI to `/ComfyUI` on first run.
+- Creates symbolic links for models and user configuration folders:
+  - `/workspace/models` → `/ComfyUI/models`
+  - `/workspace/user` → `/ComfyUI/user`
+  - `/workspace/input` → `/ComfyUI/input`
+  - `/workspace/output` → `/ComfyUI/output`
+- Creates a Python 3.12 venv and installs dependencies using `uv`.
+- Installs preselected custom nodes (ComfyUI-Manager, KJNodes, Civicomfy).
 - Starts ComfyUI with fixed args `--listen 0.0.0.0 --port 8188` plus any custom args from `comfyui_args.txt`.
 
 Differences in 5090 script:
@@ -101,12 +112,13 @@ Recognized at runtime by the start scripts:
 
 - Python 3.12 is the default interpreter in the image.
 - Venv location:
-  - Regular: `/workspace/runpod-slim/ComfyUI/.venv`
-  - 5090: `/workspace/runpod-slim/ComfyUI/.venv-cu128`
+  - Regular: `/ComfyUI/.venv`
+  - 5090: `/ComfyUI/.venv-cu128`
 - `uv` is used for dependency installation for speed and reproducibility.
 - Regular image installs ComfyUI `requirements.txt` as-is.
 - 5090 image comments out torch-related requirements and installs CUDA 12.8 torch wheels explicitly.
 - Custom nodes: repos are cloned into `ComfyUI/custom_nodes/`. On first run and subsequent starts, the script attempts to install each node’s `requirements.txt`, run `install.py`, or `setup.py` if present.
+- Symbolic links are automatically created to map `/workspace/models`, `/workspace/user`, `/workspace/input`, and `/workspace/output` to the corresponding directories in `/ComfyUI`.
 
 Preinstalled custom nodes (initial set):
 
@@ -146,7 +158,7 @@ Preinstalled custom nodes (initial set):
 ## Troubleshooting
 
 - ComfyUI not reachable on 8188:
-  - Check `/workspace/runpod-slim/comfyui.log` (tailing in foreground).
+  - Check `/workspace/comfyui.log` (tailing in foreground).
   - Ensure `comfyui_args.txt` doesn’t contain invalid flags (comments with `#` are okay).
 - JupyterLab auth:
   - If `JUPYTER_PASSWORD` is unset, Jupyter may allow tokenless or default behavior. Set it explicitly if needed.

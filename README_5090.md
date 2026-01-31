@@ -21,7 +21,7 @@ This is an open source template. Source code available at: [github.com/runpod-wo
 
 ## Custom Arguments
 
-Edit `/workspace/runpod-slim/comfyui_args.txt` (one arg per line):
+Edit `/workspace/comfyui_args.txt` (one arg per line):
 
 ```
 --max-batch-size 8
@@ -30,6 +30,21 @@ Edit `/workspace/runpod-slim/comfyui_args.txt` (one arg per line):
 
 ## Directory Structure
 
-- `/workspace/runpod-slim/ComfyUI`: ComfyUI install
-- `/workspace/runpod-slim/comfyui_args.txt`: ComfyUI args
-- `/workspace/runpod-slim/filebrowser.db`: FileBrowser DB
+- `/ComfyUI`: ComfyUI installation directory
+- `/workspace/models`: Models directory (symlinked to `/ComfyUI/models`)
+- `/workspace/user`: User configuration directory (symlinked to `/ComfyUI/user`)
+- `/workspace/input`: Input directory (symlinked to `/ComfyUI/input`)
+- `/workspace/output`: Output directory (symlinked to `/ComfyUI/output`)
+- `/workspace/comfyui_args.txt`: ComfyUI arguments file
+- `/workspace/filebrowser.db`: FileBrowser database
+
+### Symbolic Links
+
+The container automatically creates symbolic links to allow easy access to ComfyUI's models and configuration:
+
+- Place your models in `/workspace/models/` and they will be available in ComfyUI
+- Place your user configurations in `/workspace/user/` and they will be available in ComfyUI
+- Input files go in `/workspace/input/`
+- Output files are saved to `/workspace/output/`
+
+This design allows you to mount `/workspace` as a volume to persist your data across container restarts.
