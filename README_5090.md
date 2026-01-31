@@ -31,21 +31,6 @@ Edit `/workspace/runpod-slim/comfyui_args.txt` (one arg per line):
 
 ## Directory Structure
 
-- `/ComfyUI`: ComfyUI installation directory
-- `/workspace/runpod-slim/models`: Models directory (symlinked from `/ComfyUI/models`)
-- `/workspace/runpod-slim/user`: User configuration directory (symlinked from `/ComfyUI/user`)
-- `/workspace/runpod-slim/input`: Input directory (symlinked from `/ComfyUI/input`)
-- `/workspace/runpod-slim/output`: Output directory (symlinked from `/ComfyUI/output`)
-- `/workspace/runpod-slim/comfyui_args.txt`: ComfyUI arguments file
-- `/workspace/runpod-slim/filebrowser.db`: FileBrowser database
-
-### Symbolic Links
-
-The container automatically creates symbolic links to allow easy access to ComfyUI's models and configuration:
-
-- Place your models in `/workspace/runpod-slim/models/` and they will be available in ComfyUI
-- Place your user configurations in `/workspace/runpod-slim/user/` and they will be available in ComfyUI
-- Input files go in `/workspace/runpod-slim/input/`
-- Output files are saved to `/workspace/runpod-slim/output/`
-
-This design allows you to mount `/workspace/runpod-slim` as a volume to persist your data across container restarts.
+- `/workspace/runpod-slim/ComfyUI`: ComfyUI install
+- `/workspace/runpod-slim/comfyui_args.txt`: ComfyUI args
+- `/workspace/runpod-slim/filebrowser.db`: FileBrowser DB

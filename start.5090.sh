@@ -151,40 +151,64 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
     fi
     
     # Create symbolic links for models and user configuration folders
-    echo "Setting up symbolic links for models and user configuration..."
+    echo "Setting up directories and symbolic links..."
     
-    # Create workspace directories for models and user configs
+    # Create workspace directories
     mkdir -p /workspace/runpod-slim/models
     mkdir -p /workspace/runpod-slim/user
     mkdir -p /workspace/runpod-slim/input
     mkdir -p /workspace/runpod-slim/output
     
-    # Setup symbolic links, safely handling existing directories
-    for dir in models user input output; do
+    # Handle models directory - copy from network volume to container
+    if [ -d "/workspace/runpod-slim/models" ] && [ "$(ls -A /workspace/runpod-slim/models 2>/dev/null)" ]; then
+        echo "Copying models from /workspace/runpod-slim/models to /ComfyUI/models..."
+        mkdir -p "$COMFYUI_DIR/models"
+        rsync -av --ignore-existing /workspace/runpod-slim/models/ "$COMFYUI_DIR/models/" 2>/dev/null || \
+        cp -rn /workspace/runpod-slim/models/* "$COMFYUI_DIR/models/" 2>/dev/null || true
+    else
+        mkdir -p "$COMFYUI_DIR/models"
+    fi
+    
+    # Handle user directory - symlink from ComfyUI to network volume
+    if [ ! -d "/workspace/runpod-slim/user" ] || [ -z "$(ls -A /workspace/runpod-slim/user 2>/dev/null)" ]; then
+        # If network volume user directory is empty or doesn't exist, copy from ComfyUI
+        if [ -d "$COMFYUI_DIR/user" ] && [ "$(ls -A "$COMFYUI_DIR/user" 2>/dev/null)" ]; then
+            echo "Copying user config from /ComfyUI/user to /workspace/runpod-slim/user..."
+            cp -r "$COMFYUI_DIR/user"/* "/workspace/runpod-slim/user/" 2>/dev/null || true
+        fi
+    fi
+    
+    # Remove existing user directory/symlink in ComfyUI and create symlink
+    if [ -L "$COMFYUI_DIR/user" ]; then
+        rm "$COMFYUI_DIR/user"
+    elif [ -d "$COMFYUI_DIR/user" ]; then
+        rm -rf "$COMFYUI_DIR/user"
+    fi
+    ln -sf "/workspace/runpod-slim/user" "$COMFYUI_DIR/user"
+    
+    # Handle input and output - create symlinks
+    for dir in input output; do
         target_path="$COMFYUI_DIR/$dir"
         
         if [ -L "$target_path" ]; then
-            # It's already a symlink, remove it
             rm "$target_path"
         elif [ -d "$target_path" ]; then
-            # It's a directory with potentially important data, migrate it
-            echo "Migrating existing $dir directory to /workspace/runpod-slim/$dir..."
-            if [ "$(ls -A "$target_path")" ]; then
-                # Directory is not empty, copy contents
+            # Migrate any existing data first
+            if [ "$(ls -A "$target_path" 2>/dev/null)" ]; then
+                echo "Migrating existing $dir directory to /workspace/runpod-slim/$dir..."
                 cp -r "$target_path"/* "/workspace/runpod-slim/$dir/" 2>/dev/null || true
             fi
             rm -rf "$target_path"
         fi
         
-        # Create the symbolic link
         ln -sf "/workspace/runpod-slim/$dir" "$target_path"
     done
     
-    echo "Symbolic links created:"
-    echo "  $COMFYUI_DIR/models -> /workspace/runpod-slim/models"
-    echo "  $COMFYUI_DIR/user -> /workspace/runpod-slim/user"
-    echo "  $COMFYUI_DIR/input -> /workspace/runpod-slim/input"
-    echo "  $COMFYUI_DIR/output -> /workspace/runpod-slim/output"
+    echo "Directory setup complete:"
+    echo "  $COMFYUI_DIR/models - copied from /workspace/runpod-slim/models"
+    echo "  $COMFYUI_DIR/user -> /workspace/runpod-slim/user (symlink)"
+    echo "  $COMFYUI_DIR/input -> /workspace/runpod-slim/input (symlink)"
+    echo "  $COMFYUI_DIR/output -> /workspace/runpod-slim/output (symlink)"
     
     # Install ComfyUI-Manager if not present
     if [ ! -d "$COMFYUI_DIR/custom_nodes/ComfyUI-Manager" ]; then
