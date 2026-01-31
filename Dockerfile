@@ -74,7 +74,7 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV IMAGEIO_FFMPEG_EXE=/usr/bin/ffmpeg
-ENV FILEBROWSER_CONFIG=/workspace/.filebrowser.json
+ENV FILEBROWSER_CONFIG=/workspace/runpod-slim/.filebrowser.json
 
 # Update and install runtime dependencies, CUDA, and common tools
 RUN apt-get update && \
@@ -140,8 +140,8 @@ RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/
     mkdir -p /run/sshd
 
 # Create workspace directory
-RUN mkdir -p /workspace
-WORKDIR /workspace
+RUN mkdir -p /workspace/runpod-slim
+WORKDIR /workspace/runpod-slim
 
 # Expose ports
 EXPOSE 8188 22 8888 8080
