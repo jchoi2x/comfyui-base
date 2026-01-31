@@ -49,6 +49,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
+          flavor: |
+            suffix=${{ matrix.variant == '5090' && '-5090' || '' }},onlatest=true
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -58,6 +60,10 @@ jobs:
       - name: Set build args
         id: build-args
         run: |
+          # Sanitize branch name for Docker tag (replace / with -)
+          BRANCH_TAG=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
+          echo "branch_tag=${BRANCH_TAG}" >> $GITHUB_OUTPUT
+          
           if [ "${{ matrix.variant }}" == "5090" ]; then
             echo "dockerfile=Dockerfile.5090" >> $GITHUB_OUTPUT
             echo "suffix=-5090" >> $GITHUB_OUTPUT
@@ -73,9 +79,7 @@ jobs:
           file: ${{ steps.build-args.outputs.dockerfile }}
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' && (github.event.inputs.push != 'false') }}
-          tags: |
-            ghcr.io/${{ github.repository }}:${{ github.ref_name }}${{ steps.build-args.outputs.suffix }}
-            ghcr.io/${{ github.repository }}:latest${{ steps.build-args.outputs.suffix }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
