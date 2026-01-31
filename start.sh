@@ -159,17 +159,26 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
     mkdir -p /workspace/input
     mkdir -p /workspace/output
     
-    # Remove existing directories/links in ComfyUI if they exist
-    rm -rf "$COMFYUI_DIR/models"
-    rm -rf "$COMFYUI_DIR/user"
-    rm -rf "$COMFYUI_DIR/input"
-    rm -rf "$COMFYUI_DIR/output"
-    
-    # Create symbolic links from ComfyUI to workspace directories
-    ln -sf /workspace/models "$COMFYUI_DIR/models"
-    ln -sf /workspace/user "$COMFYUI_DIR/user"
-    ln -sf /workspace/input "$COMFYUI_DIR/input"
-    ln -sf /workspace/output "$COMFYUI_DIR/output"
+    # Setup symbolic links, safely handling existing directories
+    for dir in models user input output; do
+        target_path="$COMFYUI_DIR/$dir"
+        
+        if [ -L "$target_path" ]; then
+            # It's already a symlink, remove it
+            rm "$target_path"
+        elif [ -d "$target_path" ]; then
+            # It's a directory with potentially important data, migrate it
+            echo "Migrating existing $dir directory to /workspace/$dir..."
+            if [ "$(ls -A $target_path)" ]; then
+                # Directory is not empty, copy contents
+                cp -r "$target_path"/* "/workspace/$dir/" 2>/dev/null || true
+            fi
+            rm -rf "$target_path"
+        fi
+        
+        # Create the symbolic link
+        ln -sf "/workspace/$dir" "$target_path"
+    done
     
     echo "Symbolic links created:"
     echo "  $COMFYUI_DIR/models -> /workspace/models"
