@@ -210,6 +210,58 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
     echo "  $COMFYUI_DIR/input -> /workspace/runpod-slim/input (symlink)"
     echo "  $COMFYUI_DIR/output -> /workspace/runpod-slim/output (symlink)"
     
+    # Configure ComfyUI settings from environment variables
+    echo "Configuring ComfyUI settings from environment variables..."
+    mkdir -p "$COMFYUI_DIR/user/default"
+    export SETTINGS_FILE="$COMFYUI_DIR/user/default/comfy.settings.json"
+    
+    python3.12 << 'PYTHON_EOF'
+import json
+import os
+
+settings_file = os.environ.get('SETTINGS_FILE', '/ComfyUI/user/default/comfy.settings.json')
+
+# Load existing settings or create new object
+if os.path.exists(settings_file):
+    with open(settings_file, 'r') as f:
+        try:
+            settings = json.load(f)
+        except json.JSONDecodeError:
+            settings = {}
+else:
+    settings = {}
+
+# Track if any changes were made
+changed = False
+
+# Check and add CIVITAI_API_KEY
+if 'CIVITAI_API_KEY' in os.environ and os.environ['CIVITAI_API_KEY']:
+    settings['WorkflowModelsDownloader.CivitAIApiKey'] = os.environ['CIVITAI_API_KEY']
+    print(f"Added CIVITAI_API_KEY to settings")
+    changed = True
+
+# Check and add HF_TOKEN
+if 'HF_TOKEN' in os.environ and os.environ['HF_TOKEN']:
+    settings['WorkflowModelsDownloader.HuggingFaceToken'] = os.environ['HF_TOKEN']
+    settings['downloader.hf_token'] = os.environ['HF_TOKEN']
+    print(f"Added HF_TOKEN to settings")
+    changed = True
+
+# Check and add TAVILY_API_TOKEN
+if 'TAVILY_API_TOKEN' in os.environ and os.environ['TAVILY_API_TOKEN']:
+    settings['WorkflowModelsDownloader.TavilyApiKey'] = os.environ['TAVILY_API_TOKEN']
+    print(f"Added TAVILY_API_TOKEN to settings")
+    changed = True
+
+# Write settings file if any changes were made
+if changed:
+    with open(settings_file, 'w') as f:
+        json.dump(settings, f, indent=2)
+    print(f"Settings file updated: {settings_file}")
+else:
+    print("No API keys found in environment variables")
+PYTHON_EOF
+    
     # Install ComfyUI-Manager if not present
     if [ ! -d "$COMFYUI_DIR/custom_nodes/ComfyUI-Manager" ]; then
         echo "Installing ComfyUI-Manager..."
