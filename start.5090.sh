@@ -169,7 +169,7 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
         mkdir -p "$COMFYUI_DIR/models"
     fi
     
-    # Handle user directory - symlink from ComfyUI to network volume
+    # Handle user directory - symlink from network volume to /ComfyUI/user
     if [ ! -d "/workspace/runpod-slim/user" ] || [ -z "$(ls -A /workspace/runpod-slim/user 2>/dev/null)" ]; then
         # If network volume user directory is empty or doesn't exist, copy from ComfyUI
         if [ -d "$COMFYUI_DIR/user" ] && [ "$(ls -A "$COMFYUI_DIR/user" 2>/dev/null)" ]; then
