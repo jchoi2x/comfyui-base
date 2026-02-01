@@ -169,42 +169,20 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
         mkdir -p "$COMFYUI_DIR/models"
     fi
     
-    # Handle user directory - symlink from network volume to /ComfyUI/user
-    if [ ! -d "/workspace/runpod-slim/user" ] || [ -z "$(ls -A /workspace/runpod-slim/user 2>/dev/null)" ]; then
-        # If network volume user directory is empty or doesn't exist, copy from ComfyUI
-        if [ -d "$COMFYUI_DIR/user" ] && [ "$(ls -A "$COMFYUI_DIR/user" 2>/dev/null)" ]; then
-            echo "Copying user config from /ComfyUI/user to /workspace/runpod-slim/user..."
-            cp -r "$COMFYUI_DIR/user"/* "/workspace/runpod-slim/user/" 2>/dev/null || true
-        fi
+    # Copy user directory to network volume if it doesn't exist
+    if [ ! -d "/workspace/runpod-slim/user" ]; then
+        cp -rfv "$COMFYUI_DIR/user" /workspace/runpod-slim/user
     fi
     
-    # Remove existing user directory/symlink in ComfyUI and create symlink
-    if [ -L "$COMFYUI_DIR/user" ]; then
-        rm "$COMFYUI_DIR/user"
-    elif [ -d "$COMFYUI_DIR/user" ]; then
-        rm -rf "$COMFYUI_DIR/user"
-    fi
-    ln -sf "/workspace/runpod-slim/user" "$COMFYUI_DIR/user"
-    
-    # Handle input and output - create symlinks
-    for dir in input output; do
-        target_path="$COMFYUI_DIR/$dir"
-        
-        # Only create symlink if network volume directory exists
-        if [ -d "/workspace/runpod-slim/$dir" ]; then
-            if [ -L "$target_path" ]; then
-                rm "$target_path"
-            elif [ -d "$target_path" ]; then
-                # Migrate any existing data first
-                if [ "$(ls -A "$target_path" 2>/dev/null)" ]; then
-                    echo "Migrating existing $dir directory to /workspace/runpod-slim/$dir..."
-                    cp -r "$target_path"/* "/workspace/runpod-slim/$dir/" 2>/dev/null || true
-                fi
-                rm -rf "$target_path"
-            fi
-            
-            ln -sf "/workspace/runpod-slim/$dir" "$target_path"
-        fi
+    # Symlink input, output, user directories
+    for i in input output user; do
+        # Create network volume dir if not exist
+        mkdir -p "/workspace/runpod-slim/$i"
+        # Remove /ComfyUI/$i
+        rm -rf "$COMFYUI_DIR/$i"
+        # Create a symlink from network volume to comfy
+        ln -s "/workspace/runpod-slim/$i" "$COMFYUI_DIR/$i"
+        echo "/workspace/runpod-slim/$i -> $COMFYUI_DIR/$i (symlink)"
     done
     
     echo "Directory setup complete:"
