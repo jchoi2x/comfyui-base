@@ -236,22 +236,30 @@ changed = False
 
 # Check and add CIVITAI_API_KEY
 if 'CIVITAI_API_KEY' in os.environ and os.environ['CIVITAI_API_KEY']:
-    settings['WorkflowModelsDownloader.CivitAIApiKey'] = os.environ['CIVITAI_API_KEY']
-    print(f"Added CIVITAI_API_KEY to settings")
-    changed = True
+    if settings.get('WorkflowModelsDownloader.CivitAIApiKey') != os.environ['CIVITAI_API_KEY']:
+        settings['WorkflowModelsDownloader.CivitAIApiKey'] = os.environ['CIVITAI_API_KEY']
+        print(f"Added CIVITAI_API_KEY to settings")
+        changed = True
 
 # Check and add HF_TOKEN
 if 'HF_TOKEN' in os.environ and os.environ['HF_TOKEN']:
-    settings['WorkflowModelsDownloader.HuggingFaceToken'] = os.environ['HF_TOKEN']
-    settings['downloader.hf_token'] = os.environ['HF_TOKEN']
-    print(f"Added HF_TOKEN to settings")
-    changed = True
+    hf_changed = False
+    if settings.get('WorkflowModelsDownloader.HuggingFaceToken') != os.environ['HF_TOKEN']:
+        settings['WorkflowModelsDownloader.HuggingFaceToken'] = os.environ['HF_TOKEN']
+        hf_changed = True
+    if settings.get('downloader.hf_token') != os.environ['HF_TOKEN']:
+        settings['downloader.hf_token'] = os.environ['HF_TOKEN']
+        hf_changed = True
+    if hf_changed:
+        print(f"Added HF_TOKEN to settings")
+        changed = True
 
 # Check and add TAVILY_API_TOKEN
 if 'TAVILY_API_TOKEN' in os.environ and os.environ['TAVILY_API_TOKEN']:
-    settings['WorkflowModelsDownloader.TavilyApiKey'] = os.environ['TAVILY_API_TOKEN']
-    print(f"Added TAVILY_API_TOKEN to settings")
-    changed = True
+    if settings.get('WorkflowModelsDownloader.TavilyApiKey') != os.environ['TAVILY_API_TOKEN']:
+        settings['WorkflowModelsDownloader.TavilyApiKey'] = os.environ['TAVILY_API_TOKEN']
+        print(f"Added TAVILY_API_TOKEN to settings")
+        changed = True
 
 # Write settings file if any changes were made
 if changed:
