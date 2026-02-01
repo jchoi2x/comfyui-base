@@ -321,6 +321,7 @@ else
     # Just activate the existing venv
     source $VENV_DIR/bin/activate
 
+    pip install comfy_aimdo
     echo "Checking for custom node dependencies..."
 
     # Install dependencies for all custom nodes
