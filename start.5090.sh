@@ -190,18 +190,21 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
     for dir in input output; do
         target_path="$COMFYUI_DIR/$dir"
         
-        if [ -L "$target_path" ]; then
-            rm "$target_path"
-        elif [ -d "$target_path" ]; then
-            # Migrate any existing data first
-            if [ "$(ls -A "$target_path" 2>/dev/null)" ]; then
-                echo "Migrating existing $dir directory to /workspace/runpod-slim/$dir..."
-                cp -r "$target_path"/* "/workspace/runpod-slim/$dir/" 2>/dev/null || true
+        # Only create symlink if network volume directory exists
+        if [ -d "/workspace/runpod-slim/$dir" ]; then
+            if [ -L "$target_path" ]; then
+                rm "$target_path"
+            elif [ -d "$target_path" ]; then
+                # Migrate any existing data first
+                if [ "$(ls -A "$target_path" 2>/dev/null)" ]; then
+                    echo "Migrating existing $dir directory to /workspace/runpod-slim/$dir..."
+                    cp -r "$target_path"/* "/workspace/runpod-slim/$dir/" 2>/dev/null || true
+                fi
+                rm -rf "$target_path"
             fi
-            rm -rf "$target_path"
+            
+            ln -sf "/workspace/runpod-slim/$dir" "$target_path"
         fi
-        
-        ln -sf "/workspace/runpod-slim/$dir" "$target_path"
     done
     
     echo "Directory setup complete:"
