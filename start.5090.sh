@@ -286,6 +286,7 @@ PYTHON_EOF
         # Ensure pip is available in the venv (needed for ComfyUI-Manager)
         python -m ensurepip --upgrade
         python -m pip install --upgrade pip
+        pip install comfy_aimdo
 
         echo "Base packages (torch cu128, numpy, etc.) available from system site-packages"
         echo "Installing custom node dependencies..."
