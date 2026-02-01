@@ -169,39 +169,20 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
         mkdir -p "$COMFYUI_DIR/models"
     fi
     
-    # Handle user directory - symlink from ComfyUI to network volume
-    if [ ! -d "/workspace/runpod-slim/user" ] || [ -z "$(ls -A /workspace/runpod-slim/user 2>/dev/null)" ]; then
-        # If network volume user directory is empty or doesn't exist, copy from ComfyUI
-        if [ -d "$COMFYUI_DIR/user" ] && [ "$(ls -A "$COMFYUI_DIR/user" 2>/dev/null)" ]; then
-            echo "Copying user config from /ComfyUI/user to /workspace/runpod-slim/user..."
-            cp -r "$COMFYUI_DIR/user"/* "/workspace/runpod-slim/user/" 2>/dev/null || true
-        fi
+    # Copy user directory to network volume if it doesn't exist
+    if [ ! -d "/workspace/runpod-slim/user" ]; then
+        cp -rfv "$COMFYUI_DIR/user" /workspace/runpod-slim/user
     fi
     
-    # Remove existing user directory/symlink in ComfyUI and create symlink
-    if [ -L "$COMFYUI_DIR/user" ]; then
-        rm "$COMFYUI_DIR/user"
-    elif [ -d "$COMFYUI_DIR/user" ]; then
-        rm -rf "$COMFYUI_DIR/user"
-    fi
-    ln -sf "/workspace/runpod-slim/user" "$COMFYUI_DIR/user"
-    
-    # Handle input and output - create symlinks
-    for dir in input output; do
-        target_path="$COMFYUI_DIR/$dir"
-        
-        if [ -L "$target_path" ]; then
-            rm "$target_path"
-        elif [ -d "$target_path" ]; then
-            # Migrate any existing data first
-            if [ "$(ls -A "$target_path" 2>/dev/null)" ]; then
-                echo "Migrating existing $dir directory to /workspace/runpod-slim/$dir..."
-                cp -r "$target_path"/* "/workspace/runpod-slim/$dir/" 2>/dev/null || true
-            fi
-            rm -rf "$target_path"
-        fi
-        
-        ln -sf "/workspace/runpod-slim/$dir" "$target_path"
+    # Symlink input, output, user directories
+    for i in input output user; do
+        # Create network volume dir if not exist
+        mkdir -p "/workspace/runpod-slim/$i"
+        # Remove /ComfyUI/$i
+        rm -rf "$COMFYUI_DIR/$i"
+        # Create a symlink from network volume to comfy
+        ln -s "/workspace/runpod-slim/$i" "$COMFYUI_DIR/$i"
+        echo "/workspace/runpod-slim/$i -> $COMFYUI_DIR/$i (symlink)"
     done
     
     echo "Directory setup complete:"
@@ -209,6 +190,66 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
     echo "  $COMFYUI_DIR/user -> /workspace/runpod-slim/user (symlink)"
     echo "  $COMFYUI_DIR/input -> /workspace/runpod-slim/input (symlink)"
     echo "  $COMFYUI_DIR/output -> /workspace/runpod-slim/output (symlink)"
+    
+    # Configure ComfyUI settings from environment variables
+    echo "Configuring ComfyUI settings from environment variables..."
+    mkdir -p "$COMFYUI_DIR/user/default"
+    export SETTINGS_FILE="$COMFYUI_DIR/user/default/comfy.settings.json"
+    
+    python3.12 << 'PYTHON_EOF'
+import json
+import os
+
+settings_file = os.environ.get('SETTINGS_FILE', '/ComfyUI/user/default/comfy.settings.json')
+
+# Load existing settings or create new object
+if os.path.exists(settings_file):
+    with open(settings_file, 'r') as f:
+        try:
+            settings = json.load(f)
+        except json.JSONDecodeError:
+            settings = {}
+else:
+    settings = {}
+
+# Track if any changes were made
+changed = False
+
+# Check and add CIVITAI_API_KEY
+if 'CIVITAI_API_KEY' in os.environ and os.environ['CIVITAI_API_KEY']:
+    if settings.get('WorkflowModelsDownloader.CivitAIApiKey') != os.environ['CIVITAI_API_KEY']:
+        settings['WorkflowModelsDownloader.CivitAIApiKey'] = os.environ['CIVITAI_API_KEY']
+        print(f"Added CIVITAI_API_KEY to settings")
+        changed = True
+
+# Check and add HF_TOKEN
+if 'HF_TOKEN' in os.environ and os.environ['HF_TOKEN']:
+    hf_changed = False
+    if settings.get('WorkflowModelsDownloader.HuggingFaceToken') != os.environ['HF_TOKEN']:
+        settings['WorkflowModelsDownloader.HuggingFaceToken'] = os.environ['HF_TOKEN']
+        hf_changed = True
+    if settings.get('downloader.hf_token') != os.environ['HF_TOKEN']:
+        settings['downloader.hf_token'] = os.environ['HF_TOKEN']
+        hf_changed = True
+    if hf_changed:
+        print(f"Added HF_TOKEN to settings")
+        changed = True
+
+# Check and add TAVILY_API_TOKEN
+if 'TAVILY_API_TOKEN' in os.environ and os.environ['TAVILY_API_TOKEN']:
+    if settings.get('WorkflowModelsDownloader.TavilyApiKey') != os.environ['TAVILY_API_TOKEN']:
+        settings['WorkflowModelsDownloader.TavilyApiKey'] = os.environ['TAVILY_API_TOKEN']
+        print(f"Added TAVILY_API_TOKEN to settings")
+        changed = True
+
+# Write settings file if any changes were made
+if changed:
+    with open(settings_file, 'w') as f:
+        json.dump(settings, f, indent=2)
+    print(f"Settings file updated: {settings_file}")
+else:
+    print("No API keys found in environment variables")
+PYTHON_EOF
     
     # Install ComfyUI-Manager if not present
     if [ ! -d "$COMFYUI_DIR/custom_nodes/ComfyUI-Manager" ]; then
