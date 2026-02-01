@@ -323,6 +323,8 @@ else
 
     echo "Checking for custom node dependencies..."
 
+    pip install comfy_aimdo
+
     # Install dependencies for all custom nodes
     cd "$COMFYUI_DIR/custom_nodes"
     for node_dir in */; do
